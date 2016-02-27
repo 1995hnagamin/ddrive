@@ -2,6 +2,8 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'digest/sha2'
 
+class BadFileNameError < StandardError; end
+
 def filepath(filename)
   return "./objects/#{filename}"
 end
@@ -11,12 +13,17 @@ get '/' do
 end
 
 get '/get/:filename' do |filename|
-  path = filepath(filename)
-  if File.exist? path
+  begin
+    raise BadFileNameError unless filename =~ /^[0-9a-f]{64}$/
+    path = filepath(filename)
+    if not File.exist? path
+      status 404
+      "Not Found"
+    end
     send_file(path)
-  else
+  rescue BadFileNameError => e
     status 404
-    "Not Found"
+    "Bad filename"
   end
 end
 
