@@ -1,11 +1,14 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'digest/sha2'
+require 'fileutils'
 
 class BadFileNameError < StandardError; end
 
 def filepath(filename)
-  return "./objects/#{filename}"
+  head = filename[0..1]
+  tail = filename[2..-1]
+  return "./objects/#{head}/#{tail}"
 end
 
 get '/' do
@@ -36,6 +39,7 @@ put '/upload' do
     return "Already exists"
   end
   begin
+    FileUtils.mkdir_p(File.dirname(save_path))
     File.open(save_path, 'wb') do |file|
       file.write body
     end
