@@ -25,14 +25,17 @@ put '/upload' do
   shasum = Digest::SHA2.hexdigest(body)
   save_path = filepath(shasum)
   if File.exist? save_path
+    status 208
     return "Already exists"
   end
   begin
     File.open(save_path, 'wb') do |file|
       file.write body
     end
-    "Successfully uploaded"
+    status 201
+    shasum
   rescue
+    status 406
     "Something wrong"
   end
 end
