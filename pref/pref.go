@@ -1,63 +1,55 @@
 package pref
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"json"
-	"os"
+
+	"./../node"
 )
 
 type preference struct {
-	self        Node
-	successor   Node
-	predecessor Node
+	self        *node.Node
+	successor   *node.Node
+	predecessor *node.Node
 }
 
-const (
-	UnInitializedError = errors.new("preference uninitialized")
+var (
+	UnInitializedError = errors.New("preference uninitialized")
 )
 
 var (
-	sharedPreference *preference = nil
-	sharedErr        error       = UnInitializedError
+	sharedPreference, sharedErr = newPreference()
 )
 
-func newPreference() (*preference, os.Error) {
+func newPreference() (*preference, error) {
 	var p preference
-	json, err := ioutil.ReadFile("node.json")
+	text, err := ioutil.ReadFile("node.json")
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(json, &p)
+	err = json.Unmarshal(text, &p)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func Init() error {
-	sharedPreference, sharedErr := newPreference()
-	if sharedErr != nil {
-		return sharedErr
-	}
-	return nil
-}
-
-func getSelf() (*Node, error) {
+func GetSelf() (*node.Node, error) {
 	if sharedErr != nil {
 		return nil, sharedErr
 	}
 	return sharedPreference.self, nil
 }
 
-func getSuccessor() (*Node, err) {
+func GetSuccessor() (*node.Node, error) {
 	if sharedErr != nil {
 		return nil, sharedErr
 	}
 	return sharedPreference.successor, nil
 }
 
-func getPredecessor() (*Node, error) {
+func GetPredecessor() (*node.Node, error) {
 	if sharedErr != nil {
 		return nil, sharedErr
 	}

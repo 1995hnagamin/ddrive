@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"./pref"
 )
 
 func isExist(filepath string) bool {
@@ -18,12 +20,12 @@ func isResponsible(hash string) bool {
 	return true
 }
 
-func getSuccessorAddress() string {
-	return "localhost"
-}
-
-func getSuccessorPort() string {
-	return "8180"
+func getSuccessorAddress() (string, error) {
+	self, err := pref.GetSelf()
+	if err != nil {
+		return "", err
+	}
+	return self.String(), nil
 }
 
 func getFilepath(hash string) string {
@@ -35,13 +37,20 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	filepath := getFilepath(hash)
 	if isExist(filepath) {
 		http.ServeFile(w, r, filepath)
+		return
 	} else if isResponsible(hash) {
 		w.WriteHeader(http.StatusNotFound)
-	} else {
-		redirectURL := fmt.Sprintf("http://%s:%s%s",
-			getSuccessorAddress(), getSuccessorPort(), r.URL.Path)
-		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return
 	}
+	address, err := getSuccessorAddress()
+	if err != nil {
+		return
+	}
+	redirectURL := fmt.Sprintf(
+		"http://%s/get/%s",
+		address,
+		hash)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
