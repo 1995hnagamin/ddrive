@@ -8,23 +8,15 @@ import (
 	"./../node"
 )
 
-type preference struct {
-	self        *node.Node
-	successor   *node.Node
-	predecessor *node.Node
+type Preference struct {
+	Self        *node.Node
+	Successor   *node.Node
+	Predecessor *node.Node
 }
 
-var (
-	UnInitializedError = errors.New("preference uninitialized")
-)
-
-var (
-	sharedPreference, sharedErr = newPreference()
-)
-
-func newPreference() (*preference, error) {
+func NewPreference(filename string) (*preference, error) {
 	var p preference
-	text, err := ioutil.ReadFile("node.json")
+	text, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -33,25 +25,4 @@ func newPreference() (*preference, error) {
 		return nil, err
 	}
 	return &p, nil
-}
-
-func GetSelf() (*node.Node, error) {
-	if sharedErr != nil {
-		return nil, sharedErr
-	}
-	return sharedPreference.self, nil
-}
-
-func GetSuccessor() (*node.Node, error) {
-	if sharedErr != nil {
-		return nil, sharedErr
-	}
-	return sharedPreference.successor, nil
-}
-
-func GetPredecessor() (*node.Node, error) {
-	if sharedErr != nil {
-		return nil, sharedErr
-	}
-	return sharedPreference.predecessor, nil
 }
