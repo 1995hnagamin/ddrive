@@ -11,6 +11,10 @@ import (
 	"./pref"
 )
 
+var (
+	preference *pref.Preference
+)
+
 func isExist(filepath string) bool {
 	_, err := os.Stat(filepath)
 	return err != nil
@@ -20,12 +24,12 @@ func isResponsible(hash string) bool {
 	return true
 }
 
-func getSuccessorAddress() (string, error) {
-	self, err := pref.GetSelf()
+func getSuccessorAddress(preference *pref.Preference) (string, error) {
+	successor, err := preference.GetSuccessor()
 	if err != nil {
 		return "", err
 	}
-	return self.String(), nil
+	return successor.String(), nil
 }
 
 func getFilepath(hash string) string {
@@ -42,7 +46,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	address, err := getSuccessorAddress()
+	address, err := getSuccessorAddress(preference)
 	if err != nil {
 		return
 	}
@@ -74,9 +78,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var err error
+	preference, err = pref.NewPreference("database")
+	if err != nil {
+		log.Fatal(err)
+	}
 	http.HandleFunc("/get/", getHandler)
 	http.HandleFunc("/upload/", uploadHandler)
-	err := http.ListenAndServe(":8180", nil)
+	err = http.ListenAndServe(":8180", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe", err.Error())
 	}
