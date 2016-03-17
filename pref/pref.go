@@ -5,16 +5,19 @@ import (
 	"strconv"
 
 	"./../node"
-	"github.com/docker/libkv/store"
-	"github.com/docker/libkv/store/boltdb"
+	"github.com/boltdb/bolt"
 )
 
 type Preference struct {
-	DB store.Store
+	DB *bolt.DB
 }
 
+const (
+	bucketName = "bucket"
+)
+
 func NewPreference(filename string) (*Preference, error) {
-	DB, err := boltdb.New([]string{"database"}, nil)
+	DB, err := bolt.Open("database", 0644, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25,25 +28,41 @@ func (pref *Preference) Close() {
 	defer pref.DB.Close()
 }
 
+func (pref *Preference) performGetTransaction(key string) (string, error) {
+	var value []byte
+	err := pref.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		value = b.Get([]byte(key))
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(value), nil
+}
+
 func (pref *Preference) getFromDB(a, p, n string) (*node.Node, error) {
-	addresskv, err := pref.DB.Get(a)
+	address, err := pref.performGetTransaction(a)
 	if err != nil {
 		return nil, err
 	}
-	address := net.ParseIP(string(addresskv.Value))
-	portkv, err := pref.DB.Get(p)
+	portStr, err := pref.performGetTransaction(p)
 	if err != nil {
 		return nil, err
 	}
-	port, err := strconv.Atoi(string(portkv.Value))
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return nil, err
 	}
-	namekv, err := pref.DB.Get(n)
+	name, err := pref.performGetTransaction(n)
 	if err != nil {
 		return nil, err
 	}
-	return &node.Node{address, port, string(namekv.Value)}, nil
+	return &node.Node{
+			net.ParseIP(address),
+			port,
+			name},
+		nil
 }
 
 func (pref *Preference) GetSuccessor() (*node.Node, error) {
