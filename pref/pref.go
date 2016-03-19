@@ -17,7 +17,7 @@ const (
 )
 
 func NewPreference(filename string) (*Preference, error) {
-	DB, err := bolt.Open("database", 0644, nil)
+	DB, err := bolt.Open(filename, 0644, nil)
 	if err != nil {
 		return nil, err
 	}

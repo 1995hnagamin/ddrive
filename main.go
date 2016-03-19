@@ -88,7 +88,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
-	preference, err = pref.NewPreference("database")
+	preference, err = pref.NewPreference("pref.db")
 	defer preference.Close()
 	if err != nil {
 		log.Fatal(err)
