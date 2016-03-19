@@ -40,20 +40,24 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	hash := r.URL.Path[len("/get/"):]
 	filepath := getFilepath(hash)
 	if isExist(filepath) {
+		log.Printf("[get/serve]%s", hash)
 		http.ServeFile(w, r, filepath)
 		return
 	} else if isResponsible(hash) {
+		log.Printf("[get/not found]%s", filepath)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	address, err := getSuccessorAddress(preference)
 	if err != nil {
+		log.Printf("[get/error]%s", err.Error())
 		return
 	}
 	redirectURL := fmt.Sprintf(
 		"http://%s/get/%s",
 		address,
 		hash)
+	log.Printf("[get/redirect]%s", hash)
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
@@ -65,6 +69,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
+		log.Printf("[upload/error]%s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
