@@ -46,11 +46,14 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	} else if isResponsible(hash) {
 		log.Printf("[get/not found]%s", filepath)
 		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "Not Found")
 		return
 	}
 	address, err := getSuccessorAddress(preference)
 	if err != nil {
 		log.Printf("[get/error]%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error")
 		return
 	}
 	redirectURL := fmt.Sprintf(
@@ -65,6 +68,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, http.StatusText(http.StatusBadRequest))
+		return
 	}
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
