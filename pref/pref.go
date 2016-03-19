@@ -1,6 +1,7 @@
 package pref
 
 import (
+	"errors"
 	"net"
 	"strconv"
 
@@ -11,6 +12,11 @@ import (
 type Preference struct {
 	DB *bolt.DB
 }
+
+var (
+	NotFoundError = errors.New("value not found")
+	NoBucketError = errors.New("no bucket")
+)
 
 const (
 	bucketName = "bucket"
@@ -32,7 +38,14 @@ func (pref *Preference) performGetTransaction(key string) (string, error) {
 	var value []byte
 	err := pref.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
-		value = b.Get([]byte(key))
+		if b == nil {
+			return NoBucketError
+		}
+		result := b.Get([]byte(key))
+		if result == nil {
+			return NotFoundError
+		}
+		copy(value, result)
 		return nil
 	})
 	if err != nil {
