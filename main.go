@@ -17,7 +17,7 @@ var (
 
 func isExist(filepath string) bool {
 	_, err := os.Stat(filepath)
-	return err != nil
+	return os.IsExist(err)
 }
 
 func isResponsible(hash string) bool {
