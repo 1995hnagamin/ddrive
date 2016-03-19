@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"./id"
+	"./node"
 	"./pref"
 )
 
@@ -15,13 +17,25 @@ var (
 	preference *pref.Preference
 )
 
+func isBetween(hash string, p, q *node.Node) bool {
+	return id.IsBetween(id.NewID([]byte(hash)), p.Id(), q.Id())
+}
+
 func isExist(filepath string) bool {
 	_, err := os.Stat(filepath)
 	return os.IsExist(err)
 }
 
-func isResponsible(hash string) bool {
-	return true
+func isResponsible(hash string) (bool, error) {
+	self, err := preference.GetSelf()
+	if err != nil {
+		return false, err
+	}
+	successor, err := preference.GetSuccessor()
+	if err != nil {
+		return false, err
+	}
+	return isBetween(hash, self, successor), nil
 }
 
 func getSuccessorAddress(preference *pref.Preference) (string, error) {
@@ -43,7 +57,15 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[get/serve]%s", hash)
 		http.ServeFile(w, r, filepath)
 		return
-	} else if isResponsible(hash) {
+	}
+	is_responsible, err := isResponsible(hash)
+	if err != nil {
+		log.Printf("[get/error]%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error")
+		return
+	}
+	if is_responsible {
 		log.Printf("[get/not found]%s", filepath)
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Not Found")
