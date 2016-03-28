@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 
 	"./id"
 	"./node"
@@ -99,13 +100,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	hash := sha256.Sum256(body)
-	path := getFilepath(string(hash[:]))
-	if isExist(path) {
+	hash := fmt.Sprintf("%x", sha256.Sum256(body))
+	filepath := getFilepath(hash)
+	if isExist(filepath) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Already uploaded")
 		return
 	}
+	dir, _ := path.Split(filepath)
+	log.Println(dir)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		return
+	}
+	ioutil.WriteFile(filepath, body, 0700)
+	w.WriteHeader(http.StatusCreated)
+	pathToResource := "/get/" + filepath + "\n"
+	fmt.Fprintf(w, pathToResource)
+	log.Println("Uploaded: " + filepath)
+	return
 }
 
 func main() {
