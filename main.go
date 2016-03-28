@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 
 	"./id"
 	"./node"
@@ -21,9 +22,9 @@ func isBetween(hash string, p, q *node.Node) bool {
 	return id.IsBetween(id.NewID([]byte(hash)), p.Id(), q.Id())
 }
 
-func isExist(filepath string) bool {
+func Exists(filepath string) bool {
 	_, err := os.Stat(filepath)
-	return os.IsExist(err)
+	return err == nil
 }
 
 func isResponsible(hash string) (bool, error) {
@@ -53,7 +54,7 @@ func getFilepath(hash string) string {
 func getHandler(w http.ResponseWriter, r *http.Request) {
 	hash := r.URL.Path[len("/get/"):]
 	filepath := getFilepath(hash)
-	if isExist(filepath) {
+	if Exists(filepath) {
 		log.Printf("[get/serve]%s", hash)
 		http.ServeFile(w, r, filepath)
 		return
@@ -99,13 +100,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	hash := sha256.Sum256(body)
-	path := getFilepath(string(hash[:]))
-	if isExist(path) {
+	hash := fmt.Sprintf("%x", sha256.Sum256(body))
+	filepath := getFilepath(hash)
+	if Exists(filepath) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Already uploaded")
 		return
 	}
+	dir, _ := path.Split(filepath)
+	log.Println(dir)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		return
+	}
+	ioutil.WriteFile(filepath, body, 0700)
+	w.WriteHeader(http.StatusCreated)
+	pathToResource := "/get/" + filepath + "\n"
+	fmt.Fprintf(w, pathToResource)
+	log.Println("Uploaded: " + filepath)
+	return
 }
 
 func main() {
